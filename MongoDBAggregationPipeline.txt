@@ -1,0 +1,146 @@
+###############  Data set  ###############
+
+[
+  {
+    "date": ISODate("2024-06-15T00:00:00Z"),
+    "store": "Store A",
+    "items": [
+      {
+        "name": "item1",
+        "quantity": 5,
+        "price": 10.0
+      },
+      {
+        "name": "item2",
+        "quantity": 3,
+        "price": 20.0
+      }
+    ]
+  },
+  {
+    "date": ISODate("2024-06-16T00:00:00Z"),
+    "store": "Store A",
+    "items": [
+      {
+        "name": "item1",
+        "quantity": 5,
+        "price": 10.0
+      },
+      {
+        "name": "item2",
+        "quantity": 3,
+        "price": 20.0
+      }
+    ]
+  },
+  {
+    "date": ISODate("2024-05-15T00:00:00Z"),
+    "store": "Store A",
+    "items": [
+      {
+        "name": "item1",
+        "quantity": 5,
+        "price": 10.0
+      },
+      {
+        "name": "item2",
+        "quantity": 3,
+        "price": 20.0
+      }
+    ]
+  },
+  {
+    "date": ISODate("2024-06-15T00:00:00Z"),
+    "store": "Store B",
+    "items": [
+      {
+        "name": "item1",
+        "quantity": 5,
+        "price": 10.0
+      },
+      {
+        "name": "item2",
+        "quantity": 3,
+        "price": 20.0
+      }
+    ]
+  }
+]
+
+###############  Aggregation pipeline  ###############
+
+db.collection.aggregate([
+  {
+    "$unwind": "$items"
+  },
+  {
+    "$project": {
+      "month": {
+        "$dateToString": {
+          "format": "%Y-%m",
+          "date": "$date"
+        }
+      },
+      "store": "$store",
+      "items": "$items",
+      "itemRevenue": {
+        "$multiply": [
+          "$items.quantity",
+          "$items.price"
+        ]
+      }
+    }
+  },
+  {
+    "$group": {
+      "_id": {
+        "store": "$store",
+        "month": "$month"
+      },
+      "totalRevenue": {
+        "$sum": "$itemRevenue"
+      },
+      "averagePrice": {
+        "$avg": "$items.price"
+      }
+    }
+  },
+  {
+    "$project": {
+      "_id": 0,
+      "store": "$_id.store",
+      "month": "$_id.month",
+      "totalRevenue": "$totalRevenue",
+      "averagePrice": "$averagePrice"
+    }
+  },
+  {
+    "$sort": {
+      "store": 1,
+      "month": 1
+    }
+  }
+])
+
+###############  Result  ###############
+
+[
+  {
+    "averagePrice": 15,
+    "month": "2024-05",
+    "store": "Store A",
+    "totalRevenue": 110
+  },
+  {
+    "averagePrice": 15,
+    "month": "2024-06",
+    "store": "Store A",
+    "totalRevenue": 220
+  },
+  {
+    "averagePrice": 15,
+    "month": "2024-06",
+    "store": "Store B",
+    "totalRevenue": 110
+  }
+]
